@@ -1,0 +1,13 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/Blender Xoronaut Py/FileContentIndex/read.lock
+/.vs/Blender Xoronaut Py/FileContentIndex/465830ce-654d-4750-bf5b-e6cd70f86769.vsidx
+/.vs/Blender Xoronaut Py/FileContentIndex/3b0ee88d-9191-4162-a517-552b2df6a4f2.vsidx
+/.vs/Blender Xoronaut Py/v17/.wsuo
+/.vs/Blender Xoronaut Py/v17
+/.vs/Blender Xoronaut Py/v16/.suo
+*.vsidx
+/.vs/VSWorkspaceState.json
+/.vs/slnx.sqlite
