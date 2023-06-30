@@ -1,5 +1,5 @@
 bl_info = {
-    "name": "Xoronaut",
+    "name": "Xoronaut_",
     "author": "Joyce Jepleting",
     "version": (1, 0),
     "blender": (2, 93, 0),
@@ -148,7 +148,7 @@ def unregister():
 
 def draw_menu(self, context):
     layout = self.layout
-    layout.menu("TOPBAR_MT_xoronaut_menu", text="Xoronaut")
+    layout.menu("TOPBAR_MT_xoronaut_menu", text="Xoronaut_")
 
 
 class XoronautMenu(bpy.types.Menu):
