@@ -1,11 +1,3 @@
-import ptvsd
-
-# Set up the address and port for remote debugging
-ptvsd.enable_attach(address=('GIS-LAB-45'))
-
-# Pause the execution of the script until a debugger is attached
-ptvsd.wait_for_attach()
-
 bl_info = {
     "name": "Xoronaut",
     "author": "Joyce Jepleting",
