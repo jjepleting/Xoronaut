@@ -10,39 +10,40 @@ bl_info = {
 
 import bpy
 import random
+import math
 
+xnt_name = 'Xoronaut'
 
 class XoronautGeneratePointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_generate_points_operator"
     bl_label = "Generate Points"
     bl_description = "Generate n points in the start space"
 
-    num_points: bpy.props.IntProperty(name="Number of Points", default=5, min=1, max=100)
+    num_points: bpy.props.IntProperty(name="Number of Points", default=1000, min=1, max=10000)
 
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        # Generate n points in the start space
-        bpy.ops.object.select_all(action='DESELECT')
-        bpy.ops.object.select_by_type(type='MESH')
-        bpy.ops.object.delete()
-
-        points_collection = bpy.data.collections.new("Xoronaut_Points")
-        bpy.context.scene.collection.children.link(points_collection)
-
+        radius = 100.0
+        random.seed()
         for _ in range(self.num_points):
-            bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.05, depth=0.1)
-            obj = bpy.context.active_object
-            obj.location = (
-                random.uniform(-1.0, 1.0),
-                random.uniform(-1.0, 1.0),
-                random.uniform(-1.0, 1.0)
-            )
-            obj.data.use_fake_user = True
-            obj.select_set(True)
-            points_collection.objects.link(obj)
+            angle_rad = random.random() * 2 * math.pi
+            radius_instance = math.sqrt(random.random()) * radius
+            height = random.random() * 10.0
+            x = radius_instance * math.cos(angle_rad)
+            z = radius_instance * math.sin(angle_rad)
+            y = height
+            try:
+                bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.05, depth=0.1)
+                obj = bpy.context.active_object
+                obj.location = (x, y, z)
+                obj.data.use_fake_user = True
+                obj.select_set(True)
+            except Exception as e:
+                print("Overflow: {0} pts.".format(_))
+                break
 
         return {'FINISHED'}
 
@@ -78,6 +79,7 @@ class XoronautCountPointsOperator(bpy.types.Operator):
     bl_label = "Count Points"
     bl_description = "Count the number of generated points"
 
+
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
@@ -103,11 +105,30 @@ class XoronautStartMotionOperator(bpy.types.Operator):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        # Start the motion of the points using a velocity field equation
-        # Add your custom motion logic here
-        self.report({'INFO'}, "Motion started")
-        return {'FINISHED'}
+        global points_collection  # Access the global variable
+        if points_collection:
+            for obj in points_collection.objects:
+                center_pt = obj.location
+                hor_dist_to_center = math.sqrt(center_pt.x ** 2 + center_pt.z ** 2)
+                dy = 50 / hor_dist_to_center if hor_dist_to_center > 20 else 0
+                radial_speed = -10 / hor_dist_to_center
+                angular_speed = -10 / hor_dist_to_center
+                angle_to_center = math.atan2(center_pt.z, center_pt.x)
+                new_radius = hor_dist_to_center + radial_speed
+                new_angle = angle_to_center + angular_speed
+                new_x = new_radius * math.cos(new_angle)
+                new_z = new_radius * math.sin(new_angle)
+                dx = new_x - center_pt.x
+                dz = new_z - center_pt.z
+                obj.location.x += dx
+                obj.location.y += dy
+                obj.location.z += dz
 
+            self.report({'INFO'}, "Motion started")
+        else:
+            self.report({'INFO'}, "No points found")
+
+        return {'FINISHED'}
 
 class XoronautAnimateOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_animate_operator"
@@ -180,7 +201,7 @@ def unregister():
 
 def draw_menu(self, context):
     layout = self.layout
-    layout.menu("TOPBAR_MT_xoronaut_menu", text="Xoronaut")
+    layout.menu("TOPBAR_MT_xoronaut_menu", text=xnt_name)
 
 
 class XoronautMenu(bpy.types.Menu):
