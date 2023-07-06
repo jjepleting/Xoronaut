@@ -40,7 +40,7 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
             y = radius_instance * math.sin(angle_rad)
             z = height
             try:
-                bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.05, depth=0.1)
+                bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.2, depth=0.5)
                 obj = bpy.context.active_object
                 obj.location = (x, y, z)
                 obj.data.use_fake_user = True
