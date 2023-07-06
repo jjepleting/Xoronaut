@@ -13,13 +13,14 @@ import random
 import math
 
 xnt_name = 'Xoronaut'
+numpts = 1000
 
 class XoronautGeneratePointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_generate_points_operator"
     bl_label = "Generate Points"
     bl_description = "Generate n points in the start space"
 
-    num_points: bpy.props.IntProperty(name="Number of Points", default=1000, min=1, max=10000)
+    num_points: bpy.props.IntProperty(name="Number of Points", default=numpts, min=1, max=10000)
 
     @classmethod
     def poll(cls, context):
@@ -28,13 +29,16 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
     def execute(self, context):
         radius = 100.0
         random.seed()
+        wm = bpy.context.window_manager
+        wm.progress_begin(0, self.num_points)
         for _ in range(self.num_points):
+            wm.progress_update(_)
             angle_rad = random.random() * 2 * math.pi
             radius_instance = math.sqrt(random.random()) * radius
             height = random.random() * 10.0
             x = radius_instance * math.cos(angle_rad)
-            z = radius_instance * math.sin(angle_rad)
-            y = height
+            y = radius_instance * math.sin(angle_rad)
+            z = height
             try:
                 bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.05, depth=0.1)
                 obj = bpy.context.active_object
@@ -45,6 +49,7 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
                 print("Overflow: {0} pts.".format(_))
                 break
 
+        wm.progress_end()
         return {'FINISHED'}
 
 
