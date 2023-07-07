@@ -3,7 +3,7 @@ bl_info = {
     "author": "Joyce Jepleting",
     "version": (1, 0),
     "blender": (2, 93, 0),
-    "location": "TOPBAR",
+    "location": "TObPBAR",
     "description": "Adds a custom menu item and properties panel to Blender",
     "category": "Object",
 }
@@ -14,6 +14,7 @@ import math
 
 xnt_name = 'Xoronaut'
 numpts = 1000
+points_collection = None
 
 class XoronautGeneratePointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_generate_points_operator"
@@ -26,11 +27,15 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'OBJECT'
 
-    def execute(self, context):
+    def execute(self, context):     
         radius = 100.0
         random.seed()
         wm = bpy.context.window_manager
         wm.progress_begin(0, self.num_points)
+        
+        points_collection = bpy.data.collections.new("Xoronaut_Points")
+        bpy.context.scene.collection.children.link(points_collection)
+        
         for _ in range(self.num_points):
             wm.progress_update(_)
             angle_rad = random.random() * 2 * math.pi
@@ -45,6 +50,7 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
                 obj.location = (x, y, z)
                 obj.data.use_fake_user = True
                 obj.select_set(True)
+                points_collection.objects.link(obj)
             except Exception as e:
                 print("Overflow: {0} pts.".format(_))
                 break
@@ -64,18 +70,17 @@ class XoronautClearPointsOperator(bpy.types.Operator):
 
     def execute(self, context):
         points_collection = bpy.data.collections.get("Xoronaut_Points")
+        
         if points_collection:
             bpy.ops.object.select_all(action='DESELECT')
             for obj in points_collection.objects:
                 obj.select_set(True)
             bpy.ops.object.delete()
 
-            bpy.data.collections.remove(points_collection)
-
             self.report({'INFO'}, "Points cleared")
         else:
             self.report({'INFO'}, "No points found")
-
+        points_collection = None
         return {'FINISHED'}
 
 
@@ -91,6 +96,7 @@ class XoronautCountPointsOperator(bpy.types.Operator):
 
     def execute(self, context):
         points_collection = bpy.data.collections.get("Xoronaut_Points")
+        
         if points_collection:
             count = len(points_collection.objects)
             self.report({'INFO'}, f"Number of Points: {count}")
@@ -110,8 +116,9 @@ class XoronautStartMotionOperator(bpy.types.Operator):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-        global points_collection  # Access the global variable
-        if points_collection:
+         points_collection = bpy.data.collections.get("Xoronaut_Points")
+        
+         if points_collection:
             for obj in points_collection.objects:
                 center_pt = obj.location
                 hor_dist_to_center = math.sqrt(center_pt.x ** 2 + center_pt.z ** 2)
@@ -130,10 +137,10 @@ class XoronautStartMotionOperator(bpy.types.Operator):
                 obj.location.z += dz
 
             self.report({'INFO'}, "Motion started")
-        else:
+         else:
             self.report({'INFO'}, "No points found")
 
-        return {'FINISHED'}
+         return {'FINISHED'}
 
 class XoronautAnimateOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_animate_operator"
@@ -146,6 +153,7 @@ class XoronautAnimateOperator(bpy.types.Operator):
 
     def execute(self, context):
         points_collection = bpy.data.collections.get("Xoronaut_Points")
+        
         if points_collection:
             frame_start = 0
             frame_end = 100
@@ -161,6 +169,7 @@ class XoronautAnimateOperator(bpy.types.Operator):
                 for frame in range(frame_count):
                     z_value = obj.location[2]  # Z-axis value as the Y-axis value
                     keyframe_points.insert(frame + frame_start, z_value)
+                    obj.keyframe_insert(data_path, frame=frame + frame_start)
 
         return {'FINISHED'}
 
@@ -192,22 +201,9 @@ classes = (
 )
 
 
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-    bpy.types.TOPBAR_MT_editor_menus.append(draw_menu)
-
-
-def unregister():
-    bpy.types.TOPBAR_MT_editor_menus.remove(draw_menu)
-    for cls in reversed(classes):
-        bpy.utils.unregister_class(cls)
-
-
 def draw_menu(self, context):
-    layout = self.layout
-    layout.menu("TOPBAR_MT_xoronaut_menu", text=xnt_name)
-
+        layout = self.layout
+        layout.menu("TOPBAR_MT_xoronaut_menu", text=xnt_name)
 
 class XoronautMenu(bpy.types.Menu):
     bl_label = "Xoronaut"
@@ -222,26 +218,23 @@ class XoronautMenu(bpy.types.Menu):
         layout.operator("object.xoronaut_start_motion_operator")
         layout.operator("object.xoronaut_animate_operator")
 
-
 def toggle_edit_mode():
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.object.mode_set(mode='OBJECT')
-
+     bpy.ops.object.mode_set(mode='EDIT')
+     bpy.ops.object.mode_set(mode='OBJECT')
 
 def switch_to_edit_mode(func):
-    def wrapper(*args, **kwargs):
-        toggle_edit_mode()
-        result = func(*args, **kwargs)
-        toggle_edit_mode()
-        return result
+     def wrapper(*args, **kwargs):
+         toggle_edit_mode()
+         result = func(*args, **kwargs)
+         toggle_edit_mode()
+         return result
 
-    return wrapper
+     return wrapper
 
 
 @switch_to_edit_mode
 def dummy_function():
     pass
-
 
 def register():
     for cls in classes:
@@ -249,13 +242,11 @@ def register():
     bpy.types.TOPBAR_MT_editor_menus.append(draw_menu)
     bpy.utils.register_class(XoronautMenu)
 
-
 def unregister():
     bpy.utils.unregister_class(XoronautMenu)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.remove(draw_menu)
-
 
 if __name__ == "__main__":
     register()
