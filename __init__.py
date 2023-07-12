@@ -11,6 +11,8 @@ bl_info = {
 import bpy
 import random
 import math
+from bpy.props import StringProperty
+from bpy_extras.io_utils import ImportHelper
 
 xnt_name = 'Xoronaut'
 numpts = 1000
@@ -89,7 +91,6 @@ class XoronautCountPointsOperator(bpy.types.Operator):
     bl_label = "Count Points"
     bl_description = "Count the number of generated points"
 
-
     @classmethod
     def poll(cls, context):
         return context.mode == 'OBJECT'
@@ -142,6 +143,7 @@ class XoronautStartMotionOperator(bpy.types.Operator):
 
          return {'FINISHED'}
 
+
 class XoronautAnimateOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_animate_operator"
     bl_label = "Animate"
@@ -174,6 +176,26 @@ class XoronautAnimateOperator(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class XoronautLoadPointsOperator(bpy.types.Operator, ImportHelper):
+    bl_idname = "object.xoronaut_load_points_operator"
+    bl_label = "Load Points"
+    bl_description = "Load points from a file"
+
+    filename_ext = ".txt"
+    filter_glob: bpy.props.StringProperty(default="*.txt", options={'HIDDEN'})
+
+    @classmethod
+    def poll(cls, context):
+        return context.mode == 'OBJECT'
+
+    def execute(self, context):
+        filepath = self.filepath
+        # Load points from the file and create objects
+        # Add your code here to load the points from the file and create objects
+
+        return {'FINISHED'}
+
+
 class XoronautPanel(bpy.types.Panel):
     bl_label = "Xoronaut Properties"
     bl_idname = "OBJECT_PT_xoronaut_properties"
@@ -189,6 +211,7 @@ class XoronautPanel(bpy.types.Panel):
         layout.operator("object.xoronaut_count_points_operator")
         layout.operator("object.xoronaut_start_motion_operator")
         layout.operator("object.xoronaut_animate_operator")
+        layout.operator("object.xoronaut_load_points_operator")
 
 
 classes = (
@@ -197,6 +220,7 @@ classes = (
     XoronautCountPointsOperator,
     XoronautStartMotionOperator,
     XoronautAnimateOperator,
+    XoronautLoadPointsOperator,
     XoronautPanel,
 )
 
@@ -204,6 +228,7 @@ classes = (
 def draw_menu(self, context):
         layout = self.layout
         layout.menu("TOPBAR_MT_xoronaut_menu", text=xnt_name)
+
 
 class XoronautMenu(bpy.types.Menu):
     bl_label = "Xoronaut"
@@ -217,10 +242,13 @@ class XoronautMenu(bpy.types.Menu):
         layout.operator("object.xoronaut_count_points_operator")
         layout.operator("object.xoronaut_start_motion_operator")
         layout.operator("object.xoronaut_animate_operator")
+        layout.operator("object.xoronaut_load_points_operator")
+
 
 def toggle_edit_mode():
      bpy.ops.object.mode_set(mode='EDIT')
      bpy.ops.object.mode_set(mode='OBJECT')
+
 
 def switch_to_edit_mode(func):
      def wrapper(*args, **kwargs):
@@ -236,17 +264,20 @@ def switch_to_edit_mode(func):
 def dummy_function():
     pass
 
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.append(draw_menu)
     bpy.utils.register_class(XoronautMenu)
 
+
 def unregister():
     bpy.utils.unregister_class(XoronautMenu)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.remove(draw_menu)
+
 
 if __name__ == "__main__":
     register()
