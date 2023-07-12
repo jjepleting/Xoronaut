@@ -3,7 +3,7 @@ bl_info = {
     "author": "Joyce Jepleting",
     "version": (1, 0),
     "blender": (2, 93, 0),
-    "location": "TObPBAR",
+    "location": "TOPBAR",
     "description": "Adds a custom menu item and properties panel to Blender",
     "category": "Object",
 }
