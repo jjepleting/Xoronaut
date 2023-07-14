@@ -7,17 +7,89 @@ bl_info = {
     "description": "Adds a custom menu item and properties panel to Blender",
     "category": "Object",
 }
-
+import csv
 import bpy
 import random
 import math
 from bpy.props import StringProperty
 from bpy_extras.io_utils import ImportHelper
+from mathutils import Vector
 
 xnt_name = 'Xoronaut'
 numpts = 1000
 points_collection = None
 
+# Define operator to select a CSV file
+class SelectCSVFileOperator(bpy.types.Operator, ImportHelper):
+    bl_idname = "object.select_csv_file"
+    bl_label = "Select CSV File"
+    filename_ext = ".csv"
+
+    filepath: StringProperty(subtype="FILE_PATH")
+
+    def execute(self, context):
+        # Read the CSV file
+        with open(self.filepath, 'r') as file:
+            csv_reader = csv.reader(file, delimiter=',')
+
+            # Get the first point for translation calculation
+            first_point = None
+            for row in csv_reader:
+                first_point = Vector((float(row[0]), float(row[1]), float(row[2])))
+                break
+
+            # Reset the file reader
+            file.seek(0)
+
+            # Iterate over each row in the CSV file
+            for row in csv_reader:
+                # Extract x, y, and z values
+                x = float(row[0])
+                y = float(row[1])
+                z = float(row[2])
+
+                # Apply translation to each point
+                translation_vector = -1 * first_point
+                translated_point = Vector((x, y, z)) + translation_vector
+
+                # Create a new pyramid mesh in Blender
+                bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=1, depth=1, location=translated_point)
+
+        return {'FINISHED'}
+
+# Add the file path property to the scene
+bpy.types.Scene.filepath = StringProperty(name="CSV File Path", subtype='FILE_PATH')
+
+# Define the panel for the file selection
+class FileSelectionPanel(bpy.types.Panel):
+    bl_label = "CSV File Selection"
+    bl_idname = "OBJECT_PT_csv_file_selection"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'Tools'
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+
+        # Display the file path text box and file picker
+        layout.prop(scene, "filepath")
+        layout.operator("object.select_csv_file")
+
+# Register the operator and panel
+classes = [SelectCSVFileOperator, FileSelectionPanel]
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+def unregister():
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+
+if __name__ == "__main__":
+    register()
+    
 class XoronautGeneratePointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_generate_points_operator"
     bl_label = "Generate Points"
@@ -60,7 +132,6 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
         wm.progress_end()
         return {'FINISHED'}
 
-
 class XoronautClearPointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_clear_points_operator"
     bl_label = "Clear Points"
@@ -85,7 +156,6 @@ class XoronautClearPointsOperator(bpy.types.Operator):
         points_collection = None
         return {'FINISHED'}
 
-
 class XoronautCountPointsOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_count_points_operator"
     bl_label = "Count Points"
@@ -105,7 +175,6 @@ class XoronautCountPointsOperator(bpy.types.Operator):
             self.report({'INFO'}, "No points found")
 
         return {'FINISHED'}
-
 
 class XoronautStartMotionOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_start_motion_operator"
@@ -143,7 +212,6 @@ class XoronautStartMotionOperator(bpy.types.Operator):
 
          return {'FINISHED'}
 
-
 class XoronautAnimateOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_animate_operator"
     bl_label = "Animate"
@@ -175,7 +243,6 @@ class XoronautAnimateOperator(bpy.types.Operator):
 
         return {'FINISHED'}
 
-
 class XoronautLoadPointsOperator(bpy.types.Operator, ImportHelper):
     bl_idname = "object.xoronaut_load_points_operator"
     bl_label = "Load Points"
@@ -190,11 +257,8 @@ class XoronautLoadPointsOperator(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         filepath = self.filepath
-        # Load points from the file and create objects
-        # Add your code here to load the points from the file and create objects
 
         return {'FINISHED'}
-
 
 class XoronautPanel(bpy.types.Panel):
     bl_label = "Xoronaut Properties"
@@ -213,7 +277,6 @@ class XoronautPanel(bpy.types.Panel):
         layout.operator("object.xoronaut_animate_operator")
         layout.operator("object.xoronaut_load_points_operator")
 
-
 classes = (
     XoronautGeneratePointsOperator,
     XoronautClearPointsOperator,
@@ -224,12 +287,9 @@ classes = (
     XoronautPanel,
 )
 
-
 def draw_menu(self, context):
         layout = self.layout
         layout.menu("TOPBAR_MT_xoronaut_menu", text=xnt_name)
-
-
 class XoronautMenu(bpy.types.Menu):
     bl_label = "Xoronaut"
     bl_idname = "TOPBAR_MT_xoronaut_menu"
@@ -244,11 +304,9 @@ class XoronautMenu(bpy.types.Menu):
         layout.operator("object.xoronaut_animate_operator")
         layout.operator("object.xoronaut_load_points_operator")
 
-
 def toggle_edit_mode():
      bpy.ops.object.mode_set(mode='EDIT')
      bpy.ops.object.mode_set(mode='OBJECT')
-
 
 def switch_to_edit_mode(func):
      def wrapper(*args, **kwargs):
@@ -259,11 +317,9 @@ def switch_to_edit_mode(func):
 
      return wrapper
 
-
 @switch_to_edit_mode
 def dummy_function():
     pass
-
 
 def register():
     for cls in classes:
@@ -271,13 +327,11 @@ def register():
     bpy.types.TOPBAR_MT_editor_menus.append(draw_menu)
     bpy.utils.register_class(XoronautMenu)
 
-
 def unregister():
     bpy.utils.unregister_class(XoronautMenu)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     bpy.types.TOPBAR_MT_editor_menus.remove(draw_menu)
-
 
 if __name__ == "__main__":
     register()
