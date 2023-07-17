@@ -11,6 +11,7 @@ import csv
 import bpy
 import random
 import math
+import timeit
 from bpy.props import StringProperty
 from bpy_extras.io_utils import ImportHelper
 from mathutils import Vector
@@ -101,7 +102,10 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == 'OBJECT'
 
-    def execute(self, context):     
+    def execute(self, context):   
+        # Measure the time taken to generate points
+        start_time = timeit.default_timer()
+          
         radius = 100.0
         random.seed()
         wm = bpy.context.window_manager
@@ -130,6 +134,12 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
                 break
 
         wm.progress_end()
+        
+          # Calculate the time taken for point generation
+        end_time = timeit.default_timer()
+        execution_time = end_time - start_time
+
+        self.report({'INFO'}, f"Generated {self.num_points} points in {execution_time:.5f} seconds.")
         return {'FINISHED'}
 
 class XoronautClearPointsOperator(bpy.types.Operator):
