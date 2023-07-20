@@ -17,7 +17,7 @@ from bpy_extras.io_utils import ImportHelper
 from mathutils import Vector
 
 xnt_name = 'Xoronaut'
-numpts = 1000
+numpts = 500
 points_collection = None
 
 # Define operator to select a CSV file
@@ -96,7 +96,9 @@ class XoronautGeneratePointsOperator(bpy.types.Operator):
     bl_label = "Generate Points"
     bl_description = "Generate n points in the start space"
 
-    num_points: bpy.props.IntProperty(name="Number of Points", default=numpts, min=1, max=10000)
+    num_points: bpy.props.IntProperty(name="Number of Points", 
+                                      default=numpts, 
+                                      min=1, max=10000)
 
     @classmethod
     def poll(cls, context):
@@ -186,6 +188,45 @@ class XoronautCountPointsOperator(bpy.types.Operator):
 
         return {'FINISHED'}
 
+should_animate = False
+fps = 30
+animation_timer = None
+def animate_points():
+    global should_animate, fps
+
+    if should_animate == False:
+        return 5 / fps
+    
+    points_collection = bpy.data.collections.get("Xoronaut_Points")
+
+    if not points_collection:
+        return 5 / fps
+
+    # animation code is in this for loop
+    for obj in points_collection.objects:
+        center_pt = obj.location
+        hor_dist_to_center = \
+                math.sqrt(center_pt.x ** 2 + center_pt.y ** 2)
+
+        dz = 5 / hor_dist_to_center
+        if hor_dist_to_center > 10:
+            dz = 0
+
+        radial_speed = -10 / hor_dist_to_center
+        angular_speed = 10 / hor_dist_to_center
+        angle_to_center = math.atan2(center_pt.y, center_pt.x)
+        new_radius = hor_dist_to_center + radial_speed
+        new_angle = angle_to_center + angular_speed
+        new_x = new_radius * math.cos(new_angle)
+        new_y = new_radius * math.sin(new_angle)
+        dx = new_x - center_pt.x
+        dy = new_y - center_pt.y
+        obj.location.x += dx / fps
+        obj.location.y += dy / fps
+        obj.location.z += dz / fps
+
+    return 1 / fps
+
 class XoronautStartMotionOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_start_motion_operator"
     bl_label = "Start Motion"
@@ -196,35 +237,24 @@ class XoronautStartMotionOperator(bpy.types.Operator):
         return context.mode == 'OBJECT'
 
     def execute(self, context):
-         points_collection = bpy.data.collections.get("Xoronaut_Points")
-        
-         if points_collection:
-            for obj in points_collection.objects:
-                center_pt = obj.location
-                hor_dist_to_center = math.sqrt(center_pt.x ** 2 + center_pt.z ** 2)
-                dy = 50 / hor_dist_to_center if hor_dist_to_center > 20 else 0
-                radial_speed = -10 / hor_dist_to_center
-                angular_speed = -10 / hor_dist_to_center
-                angle_to_center = math.atan2(center_pt.z, center_pt.x)
-                new_radius = hor_dist_to_center + radial_speed
-                new_angle = angle_to_center + angular_speed
-                new_x = new_radius * math.cos(new_angle)
-                new_z = new_radius * math.sin(new_angle)
-                dx = new_x - center_pt.x
-                dz = new_z - center_pt.z
-                obj.location.x += dx
-                obj.location.y += dy
-                obj.location.z += dz
+        global animation_timer, should_animate
+        if animation_timer is None:
+            animation_timer = bpy.app.timers.register(animate_points)
 
+        if should_animate == True:
+            should_animate = False
+            bl_label = "Start Motion"
+            self.report({'INFO'}, "Motion stopped")
+        else: # it's False, so
+            should_animate = True
+            bl_label = "Motion, Stop"
             self.report({'INFO'}, "Motion started")
-         else:
-            self.report({'INFO'}, "No points found")
 
-         return {'FINISHED'}
+        return {'FINISHED'}
 
 class XoronautAnimateOperator(bpy.types.Operator):
     bl_idname = "object.xoronaut_animate_operator"
-    bl_label = "Animate"
+    bl_label = "Animate yo"
     bl_description = "Animate the points over time"
 
     @classmethod
@@ -284,7 +314,7 @@ class XoronautPanel(bpy.types.Panel):
         layout.operator("object.xoronaut_clear_points_operator")
         layout.operator("object.xoronaut_count_points_operator")
         layout.operator("object.xoronaut_start_motion_operator")
-        layout.operator("object.xoronaut_animate_operator")
+        #layout.operator("object.xoronaut_start_motion_operator")
         layout.operator("object.xoronaut_load_points_operator")
 
 classes = (
@@ -292,7 +322,7 @@ classes = (
     XoronautClearPointsOperator,
     XoronautCountPointsOperator,
     XoronautStartMotionOperator,
-    XoronautAnimateOperator,
+    # XoronautAnimateOperator,
     XoronautLoadPointsOperator,
     XoronautPanel,
 )
@@ -311,7 +341,7 @@ class XoronautMenu(bpy.types.Menu):
         layout.operator("object.xoronaut_clear_points_operator")
         layout.operator("object.xoronaut_count_points_operator")
         layout.operator("object.xoronaut_start_motion_operator")
-        layout.operator("object.xoronaut_animate_operator")
+        # layout.operator("object.xoronaut_animate_operator")
         layout.operator("object.xoronaut_load_points_operator")
 
 def toggle_edit_mode():
